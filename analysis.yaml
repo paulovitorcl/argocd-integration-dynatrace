@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "myapp.fullname" . }}-dynatrace-analysis
+  labels:
+    {{- include "myapp.labels" . | nindent 4 }}
+spec:
+  args:
+  - name: service-id
+    value: "{{ .Values.dynatrace.serviceId }}"
+  - name: time-range
+    value: "{{ .Values.dynatrace.timeRange | default "10m" }}"
+  - name: resolution
+    value: "{{ .Values.dynatrace.resolution | default "1m" }}"
+
+  metrics:
+  # Response Time Analysis
+  - name: response-time
+    provider:
+      web:
+        {{- include "dynatrace.baseProvider" . | nindent 8 }}
+        body: |
+          {{- include "dynatrace.responseTimeQuery" (dict 
+              "serviceId" "{{`{{.args.service-id}}`}}" 
+              "timeRange" "{{`{{.args.time-range}}`}}" 
+              "resolution" "{{`{{.args.resolution}}`}}"
+            ) | nindent 10 }}
+        jsonPath: "{$.result[0].data[*].values[*]}"
+    {{- include "dynatrace.metricConfig" (dict 
+        "successCondition" (printf "result[0] < %v" (.Values.dynatrace.thresholds.responseTime | default 1000))
+        "failureLimit" (.Values.dynatrace.failureLimit | default 3)
+        "interval" (.Values.dynatrace.interval | default "60s")
+        "count" (.Values.dynatrace.count | default 5)
+      ) | nindent 4 }}
+
+  # 5xx Error Count Analysis
+  - name: error-count-5xx
+    provider:
+      web:
+        {{- include "dynatrace.baseProvider" . | nindent 8 }}
+        body: |
+          {{- include "dynatrace.error5xxQuery" (dict 
+              "serviceId" "{{`{{.args.service-id}}`}}" 
+              "timeRange" "{{`{{.args.time-range}}`}}" 
+              "resolution" "{{`{{.args.resolution}}`}}"
+            ) | nindent 10 }}
+        jsonPath: "{$.result[0].data[*].values[*]}"
+    {{- include "dynatrace.metricConfig" (dict 
+        "successCondition" (printf "result[0] < %v" (.Values.dynatrace.thresholds.errorCount5xx | default 10))
+        "failureLimit" (.Values.dynatrace.errorFailureLimit | default 2)
+        "interval" (.Values.dynatrace.interval | default "60s")
+        "count" (.Values.dynatrace.count | default 5)
+      ) | nindent 4 }}
