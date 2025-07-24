@@ -1,0 +1,35 @@
+# Application configuration
+serviceName: "my-microservice"
+
+# Dynatrace configuration
+dynatrace:
+  # Your Dynatrace tenant URL
+  baseUrl: "https://abc12345.live.dynatrace.com"
+  
+  # Dynatrace API token (use secrets in production)
+  apiToken: "dt0c01.XXXXXXXXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
+  
+  # The Dynatrace service entity ID for your service
+  serviceId: "SERVICE-1234567890ABCDEF"
+  
+  # Query configuration
+  timeRange: "10m"
+  resolution: "1m"
+  
+  # Analysis execution settings
+  interval: "60s"
+  count: 5
+  failureLimit: 3
+  errorFailureLimit: 2
+  
+  # Monitoring thresholds
+  thresholds:
+    responseTime: 1000        # milliseconds
+    errorCount5xx: 10         # number of 5xx errors
+
+# Security configuration - Using Kubernetes secrets (recommended for production)
+secrets:
+  dynatrace:
+    enabled: true
+    name: "dynatrace-secret"
+    key: "api-token"
